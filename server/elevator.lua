@@ -1,6 +1,8 @@
 local config = require "config"
 local elevators = require "data.elevators"
 
+GlobalState.Mani_Un_ElevatorBusy = false
+
 local cooldown = false
 
 RegisterNetEvent('unheist:server:takeElevator', function(id, players)
@@ -12,12 +14,10 @@ RegisterNetEvent('unheist:server:takeElevator', function(id, players)
     if not playerData then return end
 
     if not Heist.overwritten then
-        if playerData.job.name ~= config.policeJob and not Heist.breached then
-            Heist:set("breached", true)
-            Heist:sync()
-        elseif playerData.job.name == config.policeJob and Heist.breached then
+        if playerData.job.name ~= config.policeJob and not Heist.entered then
+            Heist:set("entered", true)
+        elseif playerData.job.name == config.policeJob and Heist.entered then
             Heist:set("overwritten", true)
-            Heist:sync()
         end
     end
 

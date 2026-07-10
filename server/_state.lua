@@ -1,10 +1,14 @@
-local cachedEvents = {}
+local config = require("config")
 
 Heist = {
     crew = {},
-    inProgress = false,
-    breached = false,
+    entered = false,
     vaultOpened = false,
+
+    cellAOpened = false,
+    cellBOpened = false,
+
+    breached = false,
 
     overwritten = false,
 }
@@ -45,20 +49,12 @@ function Class:sync()
     end)
 end
 
-function Class:onUpdate(key, event)
-    cachedEvents[key] = cachedEvents[key] or {}
-    cachedEvents[key][#cachedEvents[key] + 1] = event
-end
-
 function Class:set(key, value)
     self[key] = value
 
-    local events = cachedEvents[key]
-    if not events then return end
-
-    for i = 1, #events do
-        events[i](value)
-    end
+    self:action(function(src)
+        TriggerClientEvent("unheist:client:syncKey", src, key, value)
+    end)
 end
 
 AddEventHandler('playerDropped', function()
@@ -73,10 +69,16 @@ CreateThread(function()
 
     Wait(250)
 
+    if not config.debug then return end
+
     local players = GetPlayers()
 
     for i = 1, #players do
         local src = players[i]
         Heist:add(src)
+    end
+
+    for key, value in pairs(config.debugData) do
+        Heist:set(key, value)
     end
 end)

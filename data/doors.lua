@@ -36,4 +36,18 @@ return {
         model = -1932297301,
         coords = vec3(-1.7279472351074, -686.54174804688, 16.689130783081)
     },
+    {
+        key = 'un_cell_back_a',
+        default = 1,
+        holdOpen = false,
+        model = -1011692606,
+        coords = vec3(-1.6562347412109, -662.13287353516, 16.358602523804)
+    },
+    {
+        key = 'un_cell_back_b',
+        default = 1,
+        holdOpen = false,
+        model = -1011692606,
+        coords = vec3(10.572834014893, -666.58392333984, 16.358604431152)
+    }
 }

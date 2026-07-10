@@ -43,7 +43,6 @@ local function takeElevator(id)
     Wait(3500)
 
     local playerCoords = GetEntityCoords(playerPed)
-    local playerHeading = GetEntityHeading(playerPed)
 
     local zone = zones[id]
     if not zone:contains(playerCoords) then return end
@@ -78,6 +77,9 @@ local function takeElevator(id)
     if config.elevator.sound then PlaySoundFromEntity(-1, "OPENING", playerPed, "DOOR_GARAGE", false, 0) end
 
     Wait(2000)
+
+    playerCoords = GetEntityCoords(playerPed)
+    local playerHeading = GetEntityHeading(playerPed)
 
     SetEntityCoordsNoOffset(playerPed, newCoords.x, newCoords.y, newCoords.z, true, true, false)
 
@@ -115,31 +117,47 @@ end
 RegisterNetEvent('unheist:client:takeElevator', takeElevator)
 
 local function startElevator(id)
+    local skipMinigame = false
     local elevator = elevators[id]
     local playerPed = cache.ped
 
     TaskGoStraightToCoord(playerPed, elevator.standPos.x, elevator.standPos.y, elevator.standPos.z, 1.0, -1, elevator.standPos.w, 0.4)
 
-    local timeout = 5000
+    local timeout = 3000
     local startTime = GetGameTimer()
+    local targetHeading = elevator.standPos.w
     repeat
         Wait(50)
 
         local playerCoords = GetEntityCoords(playerPed, false)
         local currentHeading = GetEntityHeading(playerPed)
-        local targetHeading = elevator.standPos.w
         local angleDiff = math.abs((currentHeading - targetHeading + 180) % 360 - 180)
         local distance = #(elevator.standPos.xyz - playerCoords)
 
         local elapsedTime = GetGameTimer() - startTime
-    until distance < 0.1 and angleDiff < 0.1 or elapsedTime > timeout
+    until distance < 0.15 and angleDiff < 0.15 or elapsedTime > timeout
 
     Jet.playanim(playerPed, "gestures@f@standing@casual", "gesture_point", 8.0, 8.0, -1, 0, 0.0, 0, 0, false)
 
     Wait(1500)
 
     Jet.Scenes.HackPhone(function(endAnim)
-        endAnim(true)
+        if next(Heist) then
+            if not Heist.overwritten and Heist.entered and elevator.lockedOnBreach then
+                return endAnim(false)
+            end
+        else
+            local playerData = Jet.Framework.GetPlayerData()
+            if not playerData then return endAnim(false) end
+
+            if playerData.job.name ~= config.policeJob then return endAnim(false) end
+
+            skipMinigame = true
+        end
+
+        local success = skipMinigame or true
+
+        endAnim(success)
 
         local players = Jet.Nearest.Players(elevator.coords, 7, true)
         for i = 1, #players do
@@ -147,7 +165,6 @@ local function startElevator(id)
 
             player.source = GetPlayerServerId(player.id)
         end
-
 
         TriggerServerEvent('unheist:server:takeElevator', id, players)
     end)
@@ -174,19 +191,6 @@ CreateThread(function()
                         label = "Start elevator",
                         icon = "fa-solid fa-elevator",
                         distance = 2.0,
-                        -- items = "hackingdevice",
-                        canInteract = function(self)
-                            if Heist.overwritten then return true end
-
-                            if next(Heist) then
-                                return not (Heist.breached and elevator.lockedOnBreach)
-                            else
-                                local playerData = Jet.Framework.GetPlayerData()
-                                if not playerData then return false end
-
-                                return playerData.job.name == config.policeJob
-                            end
-                        end,
                         onSelect = function(self)
                             startElevator(i)
                         end
